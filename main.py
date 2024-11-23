@@ -5,6 +5,14 @@ from langchain_core.output_parsers import PydanticOutputParser, JsonOutputParser
 from datetime import datetime
 import requests
 import json
+from dotenv import load_dotenv
+import openai
+import os
+
+# Importar el token
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 
 # REQUEST AL BACKEND
@@ -216,5 +224,3 @@ if __name__ == "__main__":
         end_date="2024-03-23"
     )
     print(format_report_for_display(report))
-
-
