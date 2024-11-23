@@ -14,35 +14,6 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
-
-# REQUEST AL BACKEND
-def get_patient_reports(self, user_id: int, start_date: str, end_date: str = None):
-    """Fetch patient self-reports from the API"""
-    headers = {"Authorization": f"{TOKEN}"}
-
-    try:
-        if end_date:
-            response = requests.get(
-                f"{BASE_URL}/users/{user_id}/reports",
-                params={"start_date": start_date, "end_date": end_date},
-                headers=headers
-            )
-        else:
-            response = requests.get(
-                f"{BASE_URL}/users/{user_id}/reports",
-                params={"start_date": start_date},
-                headers=headers
-            )
-
-        return response.json()
-    except Exception as e:
-        return f"Error fetching reports: {str(e)}"
-       
-
-
-
-
-
 # Constants
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_openai import ChatOpenAI
@@ -76,45 +47,26 @@ class HealthAnalyzer:
         self.model = ChatOpenAI(model="gpt-4o", temperature=0)
 
     def get_patient_reports(self, user_id: int, start_date: str, end_date: str = None):
-        """Mock example of patient self-reports data"""
-        mock_reports = [
-            {
-                "report_id": "r123",
-                "user_id": user_id,
-                "date": "2024-03-23",
-                "metrics": {
-                    "general_health": {
-                        "feeling": 7,
-                        "energy_level": 6,
-                        "symptoms": ["mild headache"],
-                        "notes": "Felt generally good today but tired"
-                    },
-                    "sleep": {
-                        "hours": 7.5,
-                        "quality": 8,
-                        "interruptions": 1
-                    },
-                    "physical_activity": {
-                        "exercise_done": True,
-                        "duration": 30,
-                        "steps": 8500
-                    },
-                    "pain": {
-                        "level": 3,
-                        "locations": ["lower back"]
-                    },
-                    "mood": {
-                        "rating": 7,
-                        "stress_level": 4
-                    },
-                    "treatment_adherence": {
-                        "medications_taken": True,
-                        "exercises_completed": True
-                    }
-                }
-            }
-        ]
-        return mock_reports
+        headers = {"Authorization": f"{os.getenv("JWT_ADMIN_BACKEND_ALIVIAUC")}"}
+
+        try:
+            if end_date:
+                response = requests.get(
+                    f"{os.getenv("BASE_URL")}/users/{user_id}/logs/fromIA",
+                    # params={"start_date": start_date, "end_date": end_date},
+                    headers=headers
+                )
+            else:
+                response = requests.get(
+                    f"{os.getenv("BASE_URL")}/users/{user_id}/logs/fromIA",
+                    # params={"start_date": start_date},
+                    headers=headers
+                )
+
+            return response.json()
+        except Exception as e:
+            return f"Error fetching reports: {str(e)}"
+    
 
     def create_metric_analysis_chain(self):
         """Create a chain for analyzing a specific health metric"""
@@ -219,7 +171,7 @@ def format_report_for_display(report: HealthReport) -> str:
 if __name__ == "__main__":
     analyzer = HealthAnalyzer()
     report = analyzer.generate_comprehensive_report(
-        user_id=123,
+        user_id=8,
         start_date="2024-01-01",
         end_date="2024-03-23"
     )
