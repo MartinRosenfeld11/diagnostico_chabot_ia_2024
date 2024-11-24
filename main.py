@@ -8,6 +8,8 @@ import json
 from dotenv import load_dotenv
 import openai
 import os
+from fpdf import FPDF, XPos, YPos
+import re
 
 # Importar el token
 load_dotenv()
@@ -208,16 +210,49 @@ class HealthAnalyzer:
 def format_report_for_display(report: HealthReport) -> str:
     """Format the health report for readable display"""
     formatted = "COMPREHENSIVE HEALTH ANALYSIS REPORT\n\n"
+    pdf = PDFReport()
 
     for field_name, field_value in report:
+        pdf.add_page()
         formatted += f"=== {field_name.replace('_', ' ').title()} ===\n"
+        pdf.chapter_title(field_name.replace('_', ' ').title())
+
         formatted += f"Current Score: {field_value.score}/10\n"
+        pdf.chapter_body(f"Current Score: {field_value.score}/10")
+
         formatted += f"Trend: {field_value.trend}\n\n"
+        pdf.chapter_body(f"Trend: {field_value.trend}")
+
         formatted += f"Analysis:\n{field_value.analysis}\n\n"
+        pdf.chapter_body(f"Analysis:\n{field_value.analysis}")
+
         formatted += f"Recommendations:\n{field_value.recommendations}\n\n"
+        pdf.chapter_body(f"Recommendations:\n{field_value.recommendations}")
         formatted += "-" * 80 + "\n\n"
+    
+    output_file = "health_analysis_report_ia.pdf"
+    pdf.output(output_file)
 
     return formatted
+
+# Crear la clase para el PDF
+class PDFReport(FPDF):
+    def header(self):
+        self.set_font('helvetica', 'B', 12)
+        self.cell(0, 10, 'COMPREHENSIVE HEALTH ANALYSIS REPORT', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+        self.ln(10)
+
+    def chapter_title(self, title):
+        self.set_font('helvetica', 'B', 14)
+        self.cell(0, 10, title, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
+        self.ln(5)
+
+    def chapter_body(self, body):
+        self.set_font('helvetica', '', 12)
+        self.multi_cell(0, 10, body.encode('latin-1', 'replace').decode('latin-1'))
+        self.ln()
+
+
 
 # Usage example
 if __name__ == "__main__":
