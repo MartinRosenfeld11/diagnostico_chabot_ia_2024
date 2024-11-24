@@ -2,3 +2,5 @@ langchain
 langchain-openai 
 pydantic
 python-dotenv
+fpdf2
+pypdf
