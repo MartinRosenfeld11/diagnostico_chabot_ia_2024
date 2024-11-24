@@ -27,6 +27,61 @@ import requests
 BASE_URL = "https://whx3z4mv39.execute-api.us-east-1.amazonaws.com/api"
 TOKEN = "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.B5lvXGoLR-79Me0lFaaO-EG3ecq1gEMPL8JhK32pElA"
 
+def revert_transformation(response_json):
+        estado_map = {0: "muy mal", 1: "mal", 2: "regular", 3: "bien", 4: "muy bien"}
+        efectos_adversos_map = {0: "si", 1: "no", "no aplica": "no aplica", None: None}
+        medicamentos_SOS_map = {0: "si", 1: "no", "no aplica": "no aplica", None: None}
+        emociones_map = {
+            0: "rabia",
+            1: "frustración",
+            2: "tristeza",
+            3: "miedo",
+            4: "alegría",
+            None: None,
+        }
+        efecto_ejercicios_map = {0: "muy mal", 1: "mal", 2: "regular", 3: "bien", 4: "muy bien"}
+        calidad_sueno_map = {0: "muy mal", 1: "mal", 2: "regular", 3: "bien", 4: "muy bien"}
+
+        transformed_logs = []
+
+        for log in response_json.get("logs", []):
+            print("################################")
+            try:
+                answers = log.get("answers", [])
+                transformed_answers = {}
+
+                transformed_answers["estado_general"] = estado_map.get(answers[0], None)
+                transformed_answers["tomo_sus_medicamentos"] = "no" if answers[1] == 1 else "si"
+                transformed_answers["efectos_adversos_de_medicamentos"] = efectos_adversos_map.get(answers[2], None)
+                transformed_answers["intensidad_dolor_general"] = answers[3]
+                transformed_answers["crisis_de_dolor"] = answers[4]
+                transformed_answers["medicamentos_SOS"] = medicamentos_SOS_map.get(answers[5], None)
+                transformed_answers["gatillante_aumento_de_sintomas"] = answers[6]
+                transformed_answers["como_afronto_aumento_de_sintomas"] = answers[7]
+                transformed_answers["realizo_ejercicios_recomendados"] = "no" if answers[8] == 1 else "si"
+                transformed_answers["efecto_ejercicios"] = efecto_ejercicios_map.get(answers[9], None)
+                transformed_answers["horas_de_sueno"] = answers[10]
+                transformed_answers["calidad_sueno"] = calidad_sueno_map.get(answers[11], None)
+                transformed_answers["nivel_de_fatiga"] = answers[12]
+                transformed_answers["emocion_predominante"] = emociones_map.get(answers[13], None)
+                transformed_answers["mejora_en_dolor"] = answers[14]
+                transformed_answers["malestar_gastrointestinal"] = answers[15]
+                transformed_answers["variacion_de_peso"] = answers[16]
+                transformed_answers["sensacion_cumplimiento_de_metas"] = answers[17]
+                transformed_answers["razon_no_medicamentos"] = answers[18]
+                transformed_answers["razon_no_ejercicio"] = answers[19]
+
+                transformed_logs.append({
+                    "id": log.get("id"),
+                    "log_date": log.get("log_date"),
+                    "answers": transformed_answers,
+                })
+                print(transformed_logs)
+            except Exception as e:
+                print(f"Error transformig report answers: {str(e)}")
+
+        return {"logs": transformed_logs}
+
 class HealthMetric(BaseModel):
     analysis: str = Field(description="Detailed analysis of the health metric based on self-reports")
     trend: str = Field(description="Observed trend over time (improving/stable/declining)")
@@ -62,10 +117,15 @@ class HealthAnalyzer:
             if response.status_code != 200:
                 return f"Error: El servidor devolvió el estado {response.status_code}: {response.text}"
 
-            print(response.json())
+            # print(response.json())
+            reverted_answers = revert_transformation(response.json())
+            # print(reverted_answers)
             return response.json()
         except Exception as e:
             return f"Error fetching reports: {str(e)}"
+    
+    
+
     
 
     def create_metric_analysis_chain(self):
@@ -173,6 +233,6 @@ if __name__ == "__main__":
     report = analyzer.generate_comprehensive_report(
         user_id=8,
         start_date="2024-11-22",
-        end_date="2024-11-23"
+        end_date="2024-11-25"
     )
     print(format_report_for_display(report))
