@@ -14,35 +14,6 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
-
-# REQUEST AL BACKEND
-def get_patient_reports(self, user_id: int, start_date: str, end_date: str = None):
-    """Fetch patient self-reports from the API"""
-    headers = {"Authorization": f"{TOKEN}"}
-
-    try:
-        if end_date:
-            response = requests.get(
-                f"{BASE_URL}/users/{user_id}/reports",
-                params={"start_date": start_date, "end_date": end_date},
-                headers=headers
-            )
-        else:
-            response = requests.get(
-                f"{BASE_URL}/users/{user_id}/reports",
-                params={"start_date": start_date},
-                headers=headers
-            )
-
-        return response.json()
-    except Exception as e:
-        return f"Error fetching reports: {str(e)}"
-       
-
-
-
-
-
 # Constants
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_openai import ChatOpenAI
@@ -55,6 +26,59 @@ import requests
 # Constants
 BASE_URL = "https://whx3z4mv39.execute-api.us-east-1.amazonaws.com/api"
 TOKEN = "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.B5lvXGoLR-79Me0lFaaO-EG3ecq1gEMPL8JhK32pElA"
+
+def revert_transformation(response_json):
+        estado_map = {0: "muy mal", 1: "mal", 2: "regular", 3: "bien", 4: "muy bien"}
+        efectos_adversos_map = {0: "si", 1: "no", "no aplica": "no aplica", None: None}
+        medicamentos_SOS_map = {0: "si", 1: "no", "no aplica": "no aplica", None: None}
+        emociones_map = {
+            0: "rabia",
+            1: "frustración",
+            2: "tristeza",
+            3: "miedo",
+            4: "alegría",
+            None: None,
+        }
+        efecto_ejercicios_map = {0: "muy mal", 1: "mal", 2: "regular", 3: "bien", 4: "muy bien"}
+        calidad_sueno_map = {0: "muy mal", 1: "mal", 2: "regular", 3: "bien", 4: "muy bien"}
+
+        transformed_logs = []
+
+        for log in response_json.get("logs", []):
+            try:
+                answers = log.get("answers", [])
+                transformed_answers = {}
+
+                transformed_answers["estado_general"] = estado_map.get(answers[0], None)
+                transformed_answers["tomo_sus_medicamentos"] = "no" if answers[1] == 1 else "si"
+                transformed_answers["efectos_adversos_de_medicamentos"] = efectos_adversos_map.get(answers[2], None)
+                transformed_answers["intensidad_dolor_general"] = answers[3]
+                transformed_answers["crisis_de_dolor"] = answers[4]
+                transformed_answers["medicamentos_SOS"] = medicamentos_SOS_map.get(answers[5], None)
+                transformed_answers["gatillante_aumento_de_sintomas"] = answers[6]
+                transformed_answers["como_afronto_aumento_de_sintomas"] = answers[7]
+                transformed_answers["realizo_ejercicios_recomendados"] = "no" if answers[8] == 1 else "si"
+                transformed_answers["efecto_ejercicios"] = efecto_ejercicios_map.get(answers[9], None)
+                transformed_answers["horas_de_sueno"] = answers[10]
+                transformed_answers["calidad_sueno"] = calidad_sueno_map.get(answers[11], None)
+                transformed_answers["nivel_de_fatiga"] = answers[12]
+                transformed_answers["emocion_predominante"] = emociones_map.get(answers[13], None)
+                transformed_answers["mejora_en_dolor"] = answers[14]
+                transformed_answers["malestar_gastrointestinal"] = answers[15]
+                transformed_answers["variacion_de_peso"] = answers[16]
+                transformed_answers["sensacion_cumplimiento_de_metas"] = answers[17]
+                transformed_answers["razon_no_medicamentos"] = answers[18]
+                transformed_answers["razon_no_ejercicio"] = answers[19]
+
+                transformed_logs.append({
+                    "id": log.get("id"),
+                    "log_date": log.get("log_date"),
+                    "answers": transformed_answers,
+                })
+            except Exception as e:
+                print(f"Error transformig report answers: {str(e)}")
+
+        return {"logs": transformed_logs}
 
 class HealthMetric(BaseModel):
     analysis: str = Field(description="Detailed analysis of the health metric based on self-reports")
@@ -76,45 +100,25 @@ class HealthAnalyzer:
         self.model = ChatOpenAI(model="gpt-4o", temperature=0)
 
     def get_patient_reports(self, user_id: int, start_date: str, end_date: str = None):
-        """Mock example of patient self-reports data"""
-        mock_reports = [
-            {
-                "report_id": "r123",
-                "user_id": user_id,
-                "date": "2024-03-23",
-                "metrics": {
-                    "general_health": {
-                        "feeling": 7,
-                        "energy_level": 6,
-                        "symptoms": ["mild headache"],
-                        "notes": "Felt generally good today but tired"
-                    },
-                    "sleep": {
-                        "hours": 7.5,
-                        "quality": 8,
-                        "interruptions": 1
-                    },
-                    "physical_activity": {
-                        "exercise_done": True,
-                        "duration": 30,
-                        "steps": 8500
-                    },
-                    "pain": {
-                        "level": 3,
-                        "locations": ["lower back"]
-                    },
-                    "mood": {
-                        "rating": 7,
-                        "stress_level": 4
-                    },
-                    "treatment_adherence": {
-                        "medications_taken": True,
-                        "exercises_completed": True
-                    }
-                }
-            }
-        ]
-        return mock_reports
+        headers = {"Authorization": os.getenv("JWT_ADMIN_BACKEND_ALIVIAUC")}
+
+        try:
+            base_url = os.getenv("BASE_URL")
+            url = f"http://{base_url}/users/{user_id}/logs/fromIA"
+
+            params = {"start_date": start_date}
+            if end_date:
+                params["end_date"] = end_date
+
+            response = requests.get(url, params=params, headers=headers)
+
+            if response.status_code != 200:
+                return f"Error: El servidor devolvió el estado {response.status_code}: {response.text}"
+
+            reverted_answers = revert_transformation(response.json())
+            return reverted_answers
+        except Exception as e:
+            return f"Error fetching reports: {str(e)}"
 
     def create_metric_analysis_chain(self):
         """Create a chain for analyzing a specific health metric"""
@@ -219,8 +223,8 @@ def format_report_for_display(report: HealthReport) -> str:
 if __name__ == "__main__":
     analyzer = HealthAnalyzer()
     report = analyzer.generate_comprehensive_report(
-        user_id=123,
-        start_date="2024-01-01",
-        end_date="2024-03-23"
+        user_id=8,
+        start_date="2024-11-24",
+        end_date="2024-11-24"
     )
     print(format_report_for_display(report))
