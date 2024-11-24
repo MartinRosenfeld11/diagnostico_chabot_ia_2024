@@ -80,15 +80,15 @@ def revert_transformation(response_json):
         return {"logs": transformed_logs}
 
 class HealthMetric(BaseModel):
-    analysis: str = Field(description="Detailed analysis of the health metric based on self-reports")
-    trend: str = Field(description="Observed trend over time (improving/stable/declining)")
-    score: int = Field(description="Numerical assessment (1-10) of the current status", ge=1, le=10)
-    recommendations: str = Field(description="Suggested actions or recommendations based on the analysis")
+    analysis: str = Field(description="Análisis detallado de la métrica de salud basado en autoevaluaciones")
+    trend: str = Field(description="Tendencia observada a lo largo del tiempo (mejorando/estable/empeorando)")
+    score: int = Field(description="Evaluación numérica (1-10) del estado actual", ge=1, le=10)
+    recommendations: str = Field(description="Acciones o recomendaciones sugeridas basadas en el análisis")
 
 class HealthReport(BaseModel):
-    general_health: HealthMetric = Field(description="Overall health status and general wellbeing")
-    sleep_quality: HealthMetric = Field(description="Sleep patterns and quality analysis")
-    physical_activity: HealthMetric = Field(description="Exercise and physical activity assessment")
+    salud_general: HealthMetric = Field(description="Estado general de salud y bienestar")
+    calidad_del_sueño: HealthMetric = Field(description="Análisis de patrones y calidad del sueño")
+    actividad_física: HealthMetric = Field(description="Evaluación del ejercicio y la actividad física")
     # pain_levels: HealthMetric = Field(description="Pain intensity and frequency analysis")
     # mood_mental_health: HealthMetric = Field(description="Mood patterns and mental health indicators")
     # adherence: HealthMetric = Field(description="Treatment adherence and consistency in reporting")
@@ -122,10 +122,10 @@ class HealthAnalyzer:
     def create_metric_analysis_chain(self):
         """Create a chain for analyzing a specific health metric"""
         metric_parser = JsonOutputParser(pydantic_object=HealthMetric)
-        metric_template = """You are a healthcare analyst evaluating {metric_name} from patient self-reports.
-        Analyze the provided reports:
+        metric_template = """Eres un analista de salud evaluando {metric_name} a partir de autoevaluaciones de los pacientes.
+        Analiza los informes proporcionados:
         {reports}
-        Produce your analysis in the following structure:
+        Produce tu análisis en la siguiente estructura:
         {format_instructions}
         """
         prompt = PromptTemplate(
@@ -139,10 +139,10 @@ class HealthAnalyzer:
     def create_report_assembly_chain(self):
         """Create a chain for assembling the final report"""
         report_parser = JsonOutputParser(pydantic_object=HealthReport)
-        prompt_template = """Given the following individual metric analyses, create a comprehensive health report.
-        Ensure all analyses are properly integrated and maintain their original structure.
+        prompt_template = """Dado el siguiente análisis individual de métricas, crea un informe integral de salud.
+        Asegúrate de que todos los análisis estén correctamente integrados y mantengan su estructura original.
 
-        Individual analyses:
+        Análisis individuales:
         {metric_analyses}
         {format_instructions}
         """
@@ -169,10 +169,10 @@ class HealthAnalyzer:
         except Exception as e:
             print(f"Error analyzing {metric_name}: {str(e)}")
             return HealthMetric(
-                analysis=f"Error analyzing {metric_name}",
+                analysis=f"Error analizando {metric_name}",
                 trend="unknown",
                 score=5,
-                recommendations="Please consult a healthcare provider for proper evaluation"
+                recommendations="Porfavor consulta con un profesional de la salud para una evaluación adecuada."
             )
 
     def generate_comprehensive_report(self, user_id: int, start_date: str, end_date: str = None) -> HealthReport:
@@ -181,9 +181,9 @@ class HealthAnalyzer:
 
         # First chain: Analyze individual metrics
         metric_analyses = {
-            "general_health": self.analyze_metric("general health", reports).dict(),
-            "sleep_quality": self.analyze_metric("sleep quality", reports).dict(),
-            "physical_activity": self.analyze_metric("physical activity", reports).dict(),
+            "salud_general": self.analyze_metric("salud general", reports).dict(),
+            "calidad_del_sueño": self.analyze_metric("calidad del sueño", reports).dict(),
+            "actividad_física": self.analyze_metric("actividad física", reports).dict(),
             # "pain_levels": self.analyze_metric("pain levels", reports).dict(),
             # "mood_mental_health": self.analyze_metric("mood and mental health", reports).dict(),
             # "adherence": self.analyze_metric("treatment adherence", reports).dict()
@@ -206,7 +206,7 @@ class HealthAnalyzer:
 # Function to format the report for display
 def format_report_for_display(report: HealthReport) -> str:
     """Format the health report for readable display"""
-    formatted = "COMPREHENSIVE HEALTH ANALYSIS REPORT\n\n"
+    formatted = "INFORME INTEGRAL DE ANÁLISIS DE SALUD ALIVIA UC\n\n"
     pdf = PDFReport()
 
     for field_name, field_value in report:
@@ -214,20 +214,20 @@ def format_report_for_display(report: HealthReport) -> str:
         formatted += f"=== {field_name.replace('_', ' ').title()} ===\n"
         pdf.chapter_title(field_name.replace('_', ' ').title())
 
-        formatted += f"Current Score: {field_value.score}/10\n"
-        pdf.chapter_body(f"Current Score: {field_value.score}/10")
+        formatted += f"Puntaje actual: {field_value.score}/10\n"
+        pdf.chapter_body(f"Puntaje actual: {field_value.score}/10")
 
-        formatted += f"Trend: {field_value.trend}\n\n"
-        pdf.chapter_body(f"Trend: {field_value.trend}")
+        formatted += f"Tendencia: {field_value.trend}\n\n"
+        pdf.chapter_body(f"Tendencia: {field_value.trend}")
 
-        formatted += f"Analysis:\n{field_value.analysis}\n\n"
-        pdf.chapter_body(f"Analysis:\n{field_value.analysis}")
+        formatted += f"Análisis:\n{field_value.analysis}\n\n"
+        pdf.chapter_body(f"Análisis:\n{field_value.analysis}")
 
-        formatted += f"Recommendations:\n{field_value.recommendations}\n\n"
-        pdf.chapter_body(f"Recommendations:\n{field_value.recommendations}")
+        formatted += f"Recomendaciones:\n{field_value.recommendations}\n\n"
+        pdf.chapter_body(f"Recomendaciones:\n{field_value.recommendations}")
         formatted += "-" * 80 + "\n\n"
     
-    output_file = "health_analysis_report_ia.pdf"
+    output_file = "Informe_Integral_Análisis_Salud.pdf"
     pdf.output(output_file)
 
     return formatted
@@ -236,7 +236,7 @@ def format_report_for_display(report: HealthReport) -> str:
 class PDFReport(FPDF):
     def header(self):
         self.set_font('helvetica', 'B', 12)
-        self.cell(0, 10, 'COMPREHENSIVE HEALTH ANALYSIS REPORT', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+        self.cell(0, 10, 'INFORME INTEGRAL DE ANÁLISIS DE SALUD ALIVIA UC', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
         self.ln(10)
 
     def chapter_title(self, title):
