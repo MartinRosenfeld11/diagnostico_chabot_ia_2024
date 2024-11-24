@@ -45,7 +45,6 @@ def revert_transformation(response_json):
         transformed_logs = []
 
         for log in response_json.get("logs", []):
-            print("################################")
             try:
                 answers = log.get("answers", [])
                 transformed_answers = {}
@@ -76,7 +75,6 @@ def revert_transformation(response_json):
                     "log_date": log.get("log_date"),
                     "answers": transformed_answers,
                 })
-                print(transformed_logs)
             except Exception as e:
                 print(f"Error transformig report answers: {str(e)}")
 
@@ -117,16 +115,10 @@ class HealthAnalyzer:
             if response.status_code != 200:
                 return f"Error: El servidor devolvió el estado {response.status_code}: {response.text}"
 
-            # print(response.json())
             reverted_answers = revert_transformation(response.json())
-            # print(reverted_answers)
-            return response.json()
+            return reverted_answers
         except Exception as e:
             return f"Error fetching reports: {str(e)}"
-    
-    
-
-    
 
     def create_metric_analysis_chain(self):
         """Create a chain for analyzing a specific health metric"""
@@ -232,7 +224,7 @@ if __name__ == "__main__":
     analyzer = HealthAnalyzer()
     report = analyzer.generate_comprehensive_report(
         user_id=8,
-        start_date="2024-11-22",
-        end_date="2024-11-25"
+        start_date="2024-11-24",
+        end_date="2024-11-24"
     )
     print(format_report_for_display(report))
