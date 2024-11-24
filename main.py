@@ -47,22 +47,22 @@ class HealthAnalyzer:
         self.model = ChatOpenAI(model="gpt-4o", temperature=0)
 
     def get_patient_reports(self, user_id: int, start_date: str, end_date: str = None):
-        headers = {"Authorization": f"{os.getenv("JWT_ADMIN_BACKEND_ALIVIAUC")}"}
+        headers = {"Authorization": os.getenv("JWT_ADMIN_BACKEND_ALIVIAUC")}
 
         try:
-            if end_date:
-                response = requests.get(
-                    f"{os.getenv("BASE_URL")}/users/{user_id}/logs/fromIA",
-                    # params={"start_date": start_date, "end_date": end_date},
-                    headers=headers
-                )
-            else:
-                response = requests.get(
-                    f"{os.getenv("BASE_URL")}/users/{user_id}/logs/fromIA",
-                    # params={"start_date": start_date},
-                    headers=headers
-                )
+            base_url = os.getenv("BASE_URL")
+            url = f"http://{base_url}/users/{user_id}/logs/fromIA"
 
+            params = {"start_date": start_date}
+            if end_date:
+                params["end_date"] = end_date
+
+            response = requests.get(url, params=params, headers=headers)
+
+            if response.status_code != 200:
+                return f"Error: El servidor devolvió el estado {response.status_code}: {response.text}"
+
+            print(response.json())
             return response.json()
         except Exception as e:
             return f"Error fetching reports: {str(e)}"
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     analyzer = HealthAnalyzer()
     report = analyzer.generate_comprehensive_report(
         user_id=8,
-        start_date="2024-01-01",
-        end_date="2024-03-23"
+        start_date="2024-11-22",
+        end_date="2024-11-23"
     )
     print(format_report_for_display(report))
