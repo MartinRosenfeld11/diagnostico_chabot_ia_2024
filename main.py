@@ -25,9 +25,6 @@ from datetime import datetime
 import json
 import requests
 
-# Constants
-BASE_URL = "https://whx3z4mv39.execute-api.us-east-1.amazonaws.com/api"
-TOKEN = "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.B5lvXGoLR-79Me0lFaaO-EG3ecq1gEMPL8JhK32pElA"
 
 def revert_transformation(response_json):
         estado_map = {0: "muy mal", 1: "mal", 2: "regular", 3: "bien", 4: "muy bien"}
