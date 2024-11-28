@@ -103,7 +103,7 @@ class HealthAnalyzer:
 
         try:
             base_url = os.getenv("BASE_URL")
-            url = f"http://{base_url}/users/{user_id}/logs/fromIA"
+            url = f"https://{base_url}/users/{user_id}/logs/fromIA"
 
             params = {"start_date": start_date}
             if end_date:
@@ -255,7 +255,7 @@ class PDFReport(FPDF):
 if __name__ == "__main__":
     analyzer = HealthAnalyzer()
     report = analyzer.generate_comprehensive_report(
-        user_id=8,
+        user_id=6,
         start_date="2024-11-24",
         end_date="2024-11-24"
     )
