@@ -1,51 +1,32 @@
 from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import PydanticOutputParser, JsonOutputParser
-from datetime import datetime
+from langchain_core.output_parsers import JsonOutputParser
 import requests
 import json
 from dotenv import load_dotenv
 import openai
 import os
 from fpdf import FPDF, XPos, YPos
-import re
 
-# Importar el token
+
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
-
-# Constants
-from langchain_core.pydantic_v1 import BaseModel, Field
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
-from langchain_core.output_parsers import JsonOutputParser
-from datetime import datetime
-import json
-import requests
 
 
 def revert_transformation(response_json):
         estado_map = {0: "muy mal", 1: "mal", 2: "regular", 3: "bien", 4: "muy bien"}
         efectos_adversos_map = {0: "si", 1: "no", "no aplica": "no aplica", None: None}
         medicamentos_SOS_map = {0: "si", 1: "no", "no aplica": "no aplica", None: None}
-        emociones_map = {
-            0: "rabia",
-            1: "frustración",
-            2: "tristeza",
-            3: "miedo",
-            4: "alegría",
-            None: None,
-        }
+        emociones_map = {0: "rabia", 1: "frustración", 2: "tristeza", 3: "miedo", 4: "alegría", None: None}
         efecto_ejercicios_map = {0: "muy mal", 1: "mal", 2: "regular", 3: "bien", 4: "muy bien"}
         calidad_sueno_map = {0: "muy mal", 1: "mal", 2: "regular", 3: "bien", 4: "muy bien"}
 
         transformed_logs = []
-
         for log in response_json.get("logs", []):
             try:
                 answers = log.get("answers", [])
+                print(answers)
                 transformed_answers = {}
 
                 transformed_answers["estado_general"] = estado_map.get(answers[0], None)
@@ -77,7 +58,9 @@ def revert_transformation(response_json):
             except Exception as e:
                 print(f"Error transformig report answers: {str(e)}")
 
+        print(transformed_logs)
         return {"logs": transformed_logs}
+
 
 class HealthMetric(BaseModel):
     analysis: str = Field(description="Análisis detallado de la métrica de salud basado en autoevaluaciones")
@@ -85,15 +68,13 @@ class HealthMetric(BaseModel):
     score: int = Field(description="Evaluación numérica (1-10) del estado actual", ge=1, le=10)
     recommendations: str = Field(description="Acciones o recomendaciones sugeridas basadas en el análisis")
 
+
 class HealthReport(BaseModel):
     salud_general: HealthMetric = Field(description="Estado general de salud y bienestar")
     calidad_del_sueño: HealthMetric = Field(description="Análisis de patrones y calidad del sueño")
     actividad_física: HealthMetric = Field(description="Evaluación del ejercicio y la actividad física")
-    # pain_levels: HealthMetric = Field(description="Pain intensity and frequency analysis")
-    # mood_mental_health: HealthMetric = Field(description="Mood patterns and mental health indicators")
-    # adherence: HealthMetric = Field(description="Treatment adherence and consistency in reporting")
 
-# HealthAnalyzer Class
+
 class HealthAnalyzer:
     def __init__(self):
         self.model = ChatOpenAI(model="gpt-4o", temperature=0)
@@ -184,9 +165,6 @@ class HealthAnalyzer:
             "salud_general": self.analyze_metric("salud general", reports).dict(),
             "calidad_del_sueño": self.analyze_metric("calidad del sueño", reports).dict(),
             "actividad_física": self.analyze_metric("actividad física", reports).dict(),
-            # "pain_levels": self.analyze_metric("pain levels", reports).dict(),
-            # "mood_mental_health": self.analyze_metric("mood and mental health", reports).dict(),
-            # "adherence": self.analyze_metric("treatment adherence", reports).dict()
         }
 
         # Second chain: Assemble final report
@@ -232,7 +210,7 @@ def format_report_for_display(report: HealthReport) -> str:
 
     return formatted
 
-# Crear la clase para el PDF
+# Converción a PDF
 class PDFReport(FPDF):
     def header(self):
         self.set_font('helvetica', 'B', 12)
@@ -250,13 +228,12 @@ class PDFReport(FPDF):
         self.ln()
 
 
-
 # Usage example
 if __name__ == "__main__":
     analyzer = HealthAnalyzer()
     report = analyzer.generate_comprehensive_report(
-        user_id=6,
-        start_date="2024-11-24",
-        end_date="2024-11-24"
+        user_id=10,
+        start_date="2024-11-29",
+        end_date="2024-11-29"
     )
     print(format_report_for_display(report))

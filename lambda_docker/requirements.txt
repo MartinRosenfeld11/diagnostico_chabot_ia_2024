@@ -1,0 +1,7 @@
+pydantic
+langchain-openai
+langchain-core
+requests
+python-dotenv
+openai
+fpdf2
