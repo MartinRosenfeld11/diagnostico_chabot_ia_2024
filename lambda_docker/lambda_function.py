@@ -228,6 +228,12 @@ class PDFReport(FPDF):
 
 
 def lambda_handler(event, context):
+
+    cors_headers = {
+        "Access-Control-Allow-Origin": "https://develop.d35qkt7cdp6rde.amplifyapp.com",
+        "Access-Control-Allow-Credentials": "true",
+    }
+
     try:
         body = json.loads(event["body"])
         user_id = body.get("user_id")
@@ -251,6 +257,7 @@ def lambda_handler(event, context):
         return {
             "statusCode": 200,
             "headers": {
+                **cors_headers,
                 "Content-Type": "application/pdf",
                 "Content-Disposition": "inline; filename=Informe_Integral_Análisis_Salud.pdf",
             },
@@ -260,6 +267,7 @@ def lambda_handler(event, context):
     except Exception as e:
         return {
             "statusCode": 500,
+            "headers": cors_headers,
             "body": json.dumps({"error": str(e)})
         }
     
