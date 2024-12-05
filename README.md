@@ -5,20 +5,23 @@ Este documento detalla los pasos realizados para construir, desplegar y probar l
 ---
 
 ## 1. Construcción de la Imagen Docker
+### Loggin en ECR
+Ver: Comandos de envío para repo-lambda-diagnostico-ia en AWS.
+
 ### Construcción de la Imagen
 Ejecuta el siguiente comando para construir la imagen Docker sin usar caché:
 
 ```bash
 Copiar código
-docker build --no-cache -t health-analyzer-lambda-ia-2 .
+docker build --no-cache -t health-analyzer-lambda-ia .
 ```
 
 ### Etiquetado de la Imagen
-Taggea la imagen construida con el repositorio ECR correspondiente:
+Taggea la imagen construida con el repositorio ECR correspondiente. Asegurate de obtener el numero de imagen correcto (docker images):
 
 ```bash
 Copiar código
-docker tag 07f4351e5697 626045775932.dkr.ecr.us-east-1.amazonaws.com/repo-lambda-diagnostico-ia:latest
+docker tag <imageID> 626045775932.dkr.ecr.us-east-1.amazonaws.com/repo-lambda-diagnostico-ia:latest
 ```
 ### Push de la Imagen al Repositorio ECR
 Envía la imagen al repositorio de AWS Elastic Container Registry (ECR):
@@ -34,7 +37,7 @@ Para ejecutar la imagen Docker en tu máquina local:
 
 ```bash
 Copiar código
-docker run -p 9000:8080 health-analyzer-lambda-ia-2
+docker run -p 9000:8080 health-analyzer-lambda-ia
 ```
 ### Realizar una Prueba Local
 Usa el siguiente comando curl para probar la función Lambda:
@@ -44,7 +47,10 @@ Copiar código
 curl -X POST "http://localhost:9000/2015-03-31/functions/function/invocations" \
     -d '{"body": "{\"user_id\": 10, \"start_date\": \"2024-11-29\"}"}'
 ```
-
+El PDF no se puede descargar al dispositivo propio con esta prueba. Esto ocurre porque al estar corriendo el programa desde un contenedor de docker el acceso a la maquina local es restringido.
+### Realizar una Prueba Local
+Por otro lado, si se quiere realizar una prueba local se puede ejecutar el programa main.py
+Este descargará el pdf.
 ## 3. Configuración en AWS
 ### Elastic Container Registry (ECR)
 Se creó un repositorio llamado repo-lambda-diagnostico-ia en ECR para alojar la imagen Docker.

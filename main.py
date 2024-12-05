@@ -7,7 +7,7 @@ import json
 from dotenv import load_dotenv
 import openai
 import os
-from fpdf import FPDF, XPos, YPos
+from fpdf import FPDF
 
 
 load_dotenv()
@@ -26,7 +26,6 @@ def revert_transformation(response_json):
         for log in response_json.get("logs", []):
             try:
                 answers = log.get("answers", [])
-                print(answers)
                 transformed_answers = {}
 
                 transformed_answers["estado_general"] = estado_map.get(answers[0], None)
@@ -58,8 +57,36 @@ def revert_transformation(response_json):
             except Exception as e:
                 print(f"Error transformig report answers: {str(e)}")
 
-        print(transformed_logs)
         return {"logs": transformed_logs}
+
+
+def format_report_for_display(report):
+    """Format the health report for readable display"""
+    formatted = "INFORME INTEGRAL DE ANÁLISIS DE SALUD ALIVIA UC\n\n"
+    pdf = PDFReport()
+
+    for field_name, field_value in report:
+        pdf.add_page()
+        formatted += f"=== {field_name.replace('_', ' ').title()} ===\n"
+        pdf.chapter_title(field_name.replace('_', ' ').title())
+
+        formatted += f"Puntaje actual: {field_value.score}/10\n"
+        pdf.chapter_body(f"Puntaje actual: {field_value.score}/10")
+
+        formatted += f"Tendencia: {field_value.trend}\n\n"
+        pdf.chapter_body(f"Tendencia: {field_value.trend}")
+
+        formatted += f"Análisis:\n{field_value.analysis}\n\n"
+        pdf.chapter_body(f"Análisis:\n{field_value.analysis}")
+
+        formatted += f"Recomendaciones:\n{field_value.recommendations}\n\n"
+        pdf.chapter_body(f"Recomendaciones:\n{field_value.recommendations}")
+        formatted += "-" * 80 + "\n\n"
+    
+    output_file = "Informe_Integral_Análisis_Salud.pdf"  # Cambiar ubicación
+    pdf.output(output_file)
+
+    return formatted
 
 
 class HealthMetric(BaseModel):
@@ -181,51 +208,55 @@ class HealthAnalyzer:
             print(f"Error assembling final report: {str(e)}")
             return HealthReport(**metric_analyses)
 
-# Function to format the report for display
-def format_report_for_display(report: HealthReport) -> str:
-    """Format the health report for readable display"""
-    formatted = "INFORME INTEGRAL DE ANÁLISIS DE SALUD ALIVIA UC\n\n"
-    pdf = PDFReport()
 
-    for field_name, field_value in report:
-        pdf.add_page()
-        formatted += f"=== {field_name.replace('_', ' ').title()} ===\n"
-        pdf.chapter_title(field_name.replace('_', ' ').title())
-
-        formatted += f"Puntaje actual: {field_value.score}/10\n"
-        pdf.chapter_body(f"Puntaje actual: {field_value.score}/10")
-
-        formatted += f"Tendencia: {field_value.trend}\n\n"
-        pdf.chapter_body(f"Tendencia: {field_value.trend}")
-
-        formatted += f"Análisis:\n{field_value.analysis}\n\n"
-        pdf.chapter_body(f"Análisis:\n{field_value.analysis}")
-
-        formatted += f"Recomendaciones:\n{field_value.recommendations}\n\n"
-        pdf.chapter_body(f"Recomendaciones:\n{field_value.recommendations}")
-        formatted += "-" * 80 + "\n\n"
-    
-    output_file = "Informe_Integral_Análisis_Salud.pdf"
-    pdf.output(output_file)
-
-    return formatted
-
-# Converción a PDF
 class PDFReport(FPDF):
     def header(self):
         self.set_font('helvetica', 'B', 12)
-        self.cell(0, 10, 'INFORME INTEGRAL DE ANÁLISIS DE SALUD ALIVIA UC', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+        self.cell(0, 10, 'INFORME INTEGRAL DE ANÁLISIS DE SALUD ALIVIA UC', new_x="LMARGIN", new_y="NEXT", align='C')
         self.ln(10)
 
     def chapter_title(self, title):
         self.set_font('helvetica', 'B', 14)
-        self.cell(0, 10, title, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
+        self.cell(0, 10, title, new_x="LMARGIN", new_y="NEXT", align='L')
         self.ln(5)
 
     def chapter_body(self, body):
         self.set_font('helvetica', '', 12)
         self.multi_cell(0, 10, body.encode('latin-1', 'replace').decode('latin-1'))
         self.ln()
+
+
+def lambda_handler(event, context):
+
+    try:
+        body = json.loads(event["body"])
+        user_id = body.get("user_id")
+        start_date = body.get("start_date")
+        end_date = body.get("end_date")
+        
+        analyzer = HealthAnalyzer()
+        report = analyzer.generate_comprehensive_report(user_id, start_date, end_date)
+        print(report)
+
+        formatted_report = format_report_for_display(report)
+        
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/pdf",
+                "Content-Disposition": "inline; filename=Informe_Integral_Análisis_Salud.pdf",
+            },
+            "body": "hola",
+        }
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Content-Type": "application/pdf",
+                "Content-Disposition": "inline; filename=Informe_Integral_Análisis_Salud.pdf",
+            },
+            "body": json.dumps({"error": str(e)})
+        }
 
 
 # Usage example
