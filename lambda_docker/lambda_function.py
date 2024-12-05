@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 import openai
 import os
 from fpdf import FPDF
-import base64
 
 
 load_dotenv()
@@ -84,7 +83,7 @@ def format_report_for_display(report):
         pdf.chapter_body(f"Recomendaciones:\n{field_value.recommendations}")
         formatted += "-" * 80 + "\n\n"
     
-    output_file = "/tmp/Informe_Integral_Análisis_Salud.pdf"  # Cambiar ubicación
+    output_file = "Informe_Integral_Análisis_Salud.pdf"  # Cambiar ubicación
     pdf.output(output_file)
 
     return formatted
@@ -229,11 +228,6 @@ class PDFReport(FPDF):
 
 def lambda_handler(event, context):
 
-    cors_headers = {
-        "Access-Control-Allow-Origin": "https://develop.d35qkt7cdp6rde.amplifyapp.com",
-        "Access-Control-Allow-Credentials": "true",
-    }
-
     try:
         body = json.loads(event["body"])
         user_id = body.get("user_id")
@@ -243,55 +237,27 @@ def lambda_handler(event, context):
         analyzer = HealthAnalyzer()
         report = analyzer.generate_comprehensive_report(user_id, start_date, end_date)
         print(report)
-        
-        formatted_report = format_report_for_display(report)
-    
-        # Leer el archivo PDF generado en /tmp
-        pdf_path = "/tmp/Informe_Integral_Análisis_Salud.pdf"
-        with open(pdf_path, "rb") as pdf_file:
-            pdf_content = pdf_file.read()
-        
-        # Codificar el contenido PDF en base64
-        encoded_pdf = base64.b64encode(pdf_content).decode("utf-8")
+
+        # Se debe retornar el contenido del pdf codificado hacia el frontend
+        # y desde el frontend generar el pdf, pues no se puede descargar
+        # un pdf al dispositivo local desde una función ejecutandose en un contenedor de docker
+
+        # formatted_report = format_report_for_display(report)
         
         return {
             "statusCode": 200,
             "headers": {
-                **cors_headers,
                 "Content-Type": "application/pdf",
                 "Content-Disposition": "inline; filename=Informe_Integral_Análisis_Salud.pdf",
             },
-            "body": encoded_pdf,
-            "isBase64Encoded": True,
+            "body": "hola",
         }
     except Exception as e:
         return {
             "statusCode": 500,
-            "headers": cors_headers,
+            "headers": {
+                "Content-Type": "application/pdf",
+                "Content-Disposition": "inline; filename=Informe_Integral_Análisis_Salud.pdf",
+            },
             "body": json.dumps({"error": str(e)})
         }
-    
-# def lambda_handler(event, context):
-#     try:
-#         body = json.loads(event["body"])
-#         user_id = body.get("user_id")
-#         start_date = body.get("start_date")
-#         end_date = body.get("end_date")
-        
-#         analyzer = HealthAnalyzer()
-#         report = analyzer.generate_comprehensive_report(user_id, start_date, end_date)
-#         print(report)
-        
-#         formatted_report = format_report_for_display(report)
-    
-
-#         return {
-#             "statusCode": 200,
-#             "headers": {"Content-Type": "application/pdf"},
-#             "body": formatted_report,
-#         }
-#     except Exception as e:
-#         return {
-#             "statusCode": 500,
-#             "body": json.dumps({"error": str(e)})
-#         }
